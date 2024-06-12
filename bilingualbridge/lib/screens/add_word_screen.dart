@@ -33,9 +33,8 @@ class _AddWordScreenState extends State<AddWordScreen> {
   }
 
   Future<void> _addWord() async {
-    final id = DateTime.now().millisecondsSinceEpoch; // Generate a unique ID
     final word = Word(
-      id: id,
+      id: 0, // You can generate a unique ID or use auto-increment
       english: _englishController.text,
       turkish: _turkishController.text,
       image: _imageBase64,
@@ -48,7 +47,8 @@ class _AddWordScreenState extends State<AddWordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Word'),
+        title:
+            const Text('Add Word', style: TextStyle(fontFamily: 'Montserrat')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,24 +56,53 @@ class _AddWordScreenState extends State<AddWordScreen> {
           children: [
             TextField(
               controller: _englishController,
-              decoration: const InputDecoration(labelText: 'English'),
-            ),
-            TextField(
-              controller: _turkishController,
-              decoration: const InputDecoration(labelText: 'Turkish'),
+              decoration: InputDecoration(
+                labelText: 'English',
+                labelStyle: const TextStyle(
+                    fontFamily: 'Montserrat', color: Colors.teal),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
             const SizedBox(height: 10),
-            ElevatedButton(
+            TextField(
+              controller: _turkishController,
+              decoration: InputDecoration(
+                labelText: 'Turkish',
+                labelStyle: const TextStyle(
+                    fontFamily: 'Montserrat', color: Colors.teal),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
               onPressed: _pickImage,
-              child: const Text('Pick Image'),
+              icon: const Icon(Icons.image),
+              label: const Text('Pick Image'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
             ),
             const SizedBox(height: 10),
             _imageBase64.isEmpty
-                ? const Text('No image selected.')
+                ? const Text('No image selected.',
+                    style: TextStyle(fontFamily: 'Montserrat'))
                 : Image.memory(base64Decode(_imageBase64), height: 100),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _addWord,
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
               child: const Text('Add Word'),
             ),
           ],
