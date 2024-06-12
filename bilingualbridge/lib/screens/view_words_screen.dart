@@ -14,22 +14,20 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Word> _words = [];
   List<Word> _filteredWords = [];
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchWords();
-    _searchController.addListener(() {
-      _filterWords();
-    });
+    _searchController.addListener(_filterWords);
   }
 
   Future<void> _fetchWords() async {
-    final words = await _dbHelper.getWords();
+    final wordsList = await _dbHelper.getWords();
     setState(() {
-      _words = words;
-      _filteredWords = words;
+      _words = wordsList.map((wordMap) => Word.fromMap(wordMap)).toList();
+      _filteredWords = _words;
     });
   }
 
@@ -43,11 +41,15 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
     });
   }
 
-  void _updateWord(Word word) async {
-    final TextEditingController englishController =
-        TextEditingController(text: word.english);
-    final TextEditingController turkishController =
-        TextEditingController(text: word.turkish);
+  Future<void> _deleteWord(int id) async {
+    await _dbHelper.deleteWord(id);
+    _fetchWords();
+  }
+
+  Future<void> _updateWord(Word word) async {
+    // Implement the update functionality (e.g., show a dialog to edit the word)
+    final englishController = TextEditingController(text: word.english);
+    final turkishController = TextEditingController(text: word.turkish);
 
     showDialog(
       context: context,
@@ -69,6 +71,12 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
           ),
           actions: [
             TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
               onPressed: () async {
                 final updatedWord = Word(
                   id: word.id,
@@ -76,9 +84,9 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
                   turkish: turkishController.text,
                   image: word.image,
                 );
-                await _dbHelper.updateWord(updatedWord);
+                await _dbHelper.updateWord(updatedWord.toMap());
+                Navigator.pop(context);
                 _fetchWords();
-                Navigator.of(context).pop();
               },
               child: const Text('Update'),
             ),
@@ -88,47 +96,38 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
     );
   }
 
-  void _deleteWord(int id) async {
-    await _dbHelper.deleteWord(id);
-    _fetchWords();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Words'),
+        title: const Text('View Words'),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Search',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filteredWords.length,
-              itemBuilder: (context, index) {
-                final word = _filteredWords[index];
-                final imageBytes = base64Decode(word.image);
-
-                return Card(
-                  child: ListTile(
+            const SizedBox(height: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _filteredWords.length,
+                itemBuilder: (context, index) {
+                  final word = _filteredWords[index];
+                  return ListTile(
+                    title: Text(word.english,
+                        style: const TextStyle(fontFamily: 'Montserrat')),
+                    subtitle: Text(word.turkish,
+                        style: const TextStyle(fontFamily: 'Montserrat')),
                     leading: word.image.isNotEmpty
-                        ? Image.memory(imageBytes,
-                            width: 50, height: 50, fit: BoxFit.cover)
-                        : const Icon(Icons.image_not_supported),
-                    title: Text(word.english),
-                    subtitle: Text(word.turkish),
+                        ? Image.memory(base64Decode(word.image))
+                        : null,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -142,12 +141,12 @@ class _ViewWordsScreenState extends State<ViewWordsScreen> {
                         ),
                       ],
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

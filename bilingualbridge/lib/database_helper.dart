@@ -1,18 +1,12 @@
-import 'dart:io';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:bilingualbridge/models/word.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._();
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+  DatabaseHelper._internal();
+
   static Database? _database;
-
-  DatabaseHelper._();
-
-  factory DatabaseHelper() {
-    return _instance;
-  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -21,47 +15,36 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "dictionary.db");
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    String path = join(await getDatabasesPath(), 'words_database.db');
+    return openDatabase(
+      path,
+      onCreate: (db, version) {
+        return db.execute(
+          "CREATE TABLE words(id INTEGER PRIMARY KEY, english TEXT, turkish TEXT, image TEXT)",
+        );
+      },
+      version: 1,
+    );
   }
 
-  Future _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE Dictionary (
-        id INTEGER PRIMARY KEY,
-        english TEXT,
-        turkish TEXT,
-        image TEXT
-      )
-    ''');
+  Future<void> insertWord(Map<String, dynamic> word) async {
+    final db = await database;
+    await db.insert('words', word,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<int> insertWord(Map<String, dynamic> row) async {
-    Database db = await _instance.database;
-    return await db.insert('Dictionary', row);
+  Future<List<Map<String, dynamic>>> getWords() async {
+    final db = await database;
+    return await db.query('words');
   }
 
-  Future<List<Map<String, dynamic>>> queryAllWords() async {
-    Database db = await _instance.database;
-    return await db.query('Dictionary');
+  Future<void> deleteWord(int id) async {
+    final db = await database;
+    await db.delete('words', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Word>> getWords() async {
-    final List<Map<String, dynamic>> maps = await queryAllWords();
-    return List.generate(maps.length, (i) {
-      return Word.fromMap(maps[i]);
-    });
-  }
-
-  Future<int> updateWord(Word word) async {
-    Database db = await _instance.database;
-    return await db.update('Dictionary', word.toMap(),
-        where: 'id = ?', whereArgs: [word.id]);
-  }
-
-  Future<int> deleteWord(int id) async {
-    Database db = await _instance.database;
-    return await db.delete('Dictionary', where: 'id = ?', whereArgs: [id]);
+  Future<void> updateWord(Map<String, dynamic> word) async {
+    final db = await database;
+    await db.update('words', word, where: 'id = ?', whereArgs: [word['id']]);
   }
 }
